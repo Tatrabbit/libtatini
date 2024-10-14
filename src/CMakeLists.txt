@@ -5,3 +5,4 @@ add_executable(bini-knife
 )
 
 target_include_directories(bini-knife PRIVATE ${CMAKE_BINARY_DIR}/src)
+target_link_libraries(bini-knife libbini)

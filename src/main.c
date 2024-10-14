@@ -1,5 +1,7 @@
 #include "defines.h"
 
+#include "libbini/bini.h"
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -284,6 +286,18 @@ int main(const int argc, char **argv) {
 
     if ((err = read_input_files(argc, (const char **) argv)))
         return cleanup(err);
+
+    ini_file_t *files = malloc(sizeof(ini_file_t) * options.input_count);
+
+    for (size_t i = 0; i < options.input_count; ++i) {
+        const file_info_t *info = &options.input_infos[i];
+
+        files[i].filename = info->filename;
+        files[i].file_size = info->size;
+        files[i].contents = info->contents;
+    }
+
+    bini_parseini_inplace_multi(files, options.input_count);
 
     return cleanup(0);
 }
