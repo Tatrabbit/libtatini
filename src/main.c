@@ -1,6 +1,6 @@
 #include "defines.h"
 
-#include "libbini/bini.h"
+#include "tat_bini.h"
 
 #include <assert.h>
 #include <stdarg.h>

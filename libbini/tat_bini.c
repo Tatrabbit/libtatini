@@ -1,4 +1,4 @@
-#include "bini.h"
+#include "tat_bini.h"
 
 #include <stdlib.h>
 #include <setjmp.h>
