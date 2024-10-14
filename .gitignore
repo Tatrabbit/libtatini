@@ -1,0 +1,6 @@
+# Jetbrains IDEs (Don't contribute project files...)
+**/.idea/
+cmake-build-*/
+
+# OS Stuff
+.DS_Store
