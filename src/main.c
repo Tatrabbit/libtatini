@@ -18,19 +18,22 @@ enum {
 };
 
 typedef struct {
-    const char *filename;
+    bini_textfile_info_t bini;
     FILE *handle;
-    size_t size;
-    char *contents;
 } file_info_t;
 
 typedef struct {
     const char *program_name;
 
     size_t input_count;
-    file_info_t *input_infos;
 
     int verbose;
+
+    union {
+        void *pointer;
+        file_info_t *inputs;
+        bini_textfile_info_t *bini;
+    } file_info;
 } options_t;
 
 static options_t options;
@@ -161,7 +164,7 @@ typedef struct {
 
 static int get_file_arg(const char *filename, void *data) {
     file_arg_data_t *arg_data = data;
-    file_info_t *info = &options.input_infos[arg_data->index++];
+    file_info_t *info = &options.file_info.inputs[arg_data->index++];
 
     print_verbose("Opening file #%d (%s)\n", arg_data->index, filename);
 
@@ -169,9 +172,9 @@ static int get_file_arg(const char *filename, void *data) {
     if (info->handle == NULL)
         return print_file_error("Cannot open %s", filename);
 
-    info->size = get_fsize(info->handle) + 1;
-    arg_data->total_size += info->size;
-
+    const size_t size = get_fsize(info->handle) + 1;
+    info->bini.file_size = size;
+    arg_data->total_size += size;
     return 0;
 }
 
@@ -186,11 +189,11 @@ static int allocate_input_files(const int argc, const char *const *argv) {
     print_verbose("Reading info from %d files...\n", options.input_count);
 
     // Allocate and zerofill
-    options.input_infos = malloc(sizeof(file_info_t) * options.input_count);
-    if (options.input_infos == NULL) {
+    options.file_info.pointer = malloc(sizeof(file_info_t) * options.input_count);
+    if (options.file_info.pointer == NULL) {
         return print_mem_error();
     }
-    memset(options.input_infos, 0, sizeof(file_info_t) * options.input_count);
+    memset(options.file_info.pointer, 0, sizeof(file_info_t) * options.input_count);
 
     return 0;
 }
@@ -219,15 +222,15 @@ static int read_input_files(const int argc, const char *const *argv) {
 
     // Read & assign buffers
     for (size_t i = 0; i < options.input_count; ++i) {
-        file_info_t *info = &options.input_infos[i];
+        file_info_t *info = &options.file_info.inputs[i];
 
         fseek(info->handle, 0, SEEK_SET);
-        const size_t read_count = fread(buffer, info->size - 1, 1, info->handle);
+        const size_t read_count = fread(buffer, info->bini.file_size - 1, 1, info->handle);
         if (read_count != 1)
-            return print_file_error("Error reading file #%d (%s)\n", i, info->filename);
+            return print_file_error("Error reading file #%d (%s)\n", i, info->bini.filename);
 
-        info->contents = buffer;
-        buffer += info->size;
+        info->bini.contents = buffer;
+        buffer += info->bini.file_size;
     }
 
     return 0;
@@ -241,10 +244,11 @@ static int parse_options(const int argc, const char *const *argv) {
 }
 
 static void close_input_files() {
-    assert(options.input_count >= 1);
+    if (options.input_count == 0)
+        return;
 
     for (size_t i = 0; i < options.input_count; ++i) {
-        file_info_t *info = &options.input_infos[i];
+        file_info_t *info = &options.file_info.inputs[i];
 
         FILE *file = info->handle;
         if (file == NULL)
@@ -253,25 +257,38 @@ static void close_input_files() {
         fclose(file);
         info->handle = NULL;
     }
+
+    options.input_count = 0;
 }
 
 static void cleanup_file_infos() {
-    if (options.input_infos == NULL)
+    if (options.file_info.pointer == NULL)
         return;
-
-    assert(options.input_count >= 1);
 
     close_input_files();
 
-    if (options.input_infos[0].contents != NULL)
-        free(options.input_infos[0].contents);
+    if (options.file_info.bini[0].contents != NULL)
+        free(options.file_info.bini[0].contents);
 
-    free(options.input_infos);
+    free(options.file_info.pointer);
+    options.file_info.pointer = NULL;
 }
 
 static int cleanup(const int err) {
     cleanup_file_infos();
     return err;
+}
+
+static size_t convert_fileinfo_array() {
+    assert(sizeof(bini_textfile_info_t) < sizeof(file_info_t));
+
+    const size_t count = options.input_count;
+    close_input_files();
+
+    for (size_t i = 0; i < count; ++i)
+        options.file_info.bini[i] = *(bini_textfile_info_t *) &options.file_info.inputs[i];
+
+    return count;
 }
 
 int main(const int argc, char **argv) {
@@ -287,17 +304,8 @@ int main(const int argc, char **argv) {
     if ((err = read_input_files(argc, (const char **) argv)))
         return cleanup(err);
 
-    ini_file_t *files = malloc(sizeof(ini_file_t) * options.input_count);
-
-    for (size_t i = 0; i < options.input_count; ++i) {
-        const file_info_t *info = &options.input_infos[i];
-
-        files[i].filename = info->filename;
-        files[i].file_size = info->size;
-        files[i].contents = info->contents;
-    }
-
-    bini_parseini_inplace_multi(files, options.input_count);
+    const size_t count = convert_fileinfo_array();
+    bini_parseini_inplace_multi(options.file_info.bini, count);
 
     return cleanup(0);
 }

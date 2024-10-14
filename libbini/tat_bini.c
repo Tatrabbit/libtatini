@@ -126,7 +126,7 @@ static bini_section_t *new_section(const char *name) {
     return section;
 }
 
-static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const ini_file_t *file) {
+static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_textfile_info_t *file) {
     char *next = file->contents;
     const char *end = file->contents + file->file_size;
 
@@ -172,7 +172,7 @@ bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bi
 }
 
 
-bini_op_t *bini_parseini_inplace_multi(const ini_file_t *file, const size_t file_count) {
+bini_op_t *bini_parseini_inplace_multi(const bini_textfile_info_t *file, const size_t file_count) {
     if (file_count == 0)
         return NULL;
 

@@ -13,7 +13,7 @@ typedef struct {
     ///@brief Existing buffer containing file contents.
     ///@note This will be modified during parsing
     char *contents;
-} ini_file_t;
+} bini_textfile_info_t;
 
 typedef struct bini_kv_s {
     const char *key;
@@ -46,7 +46,7 @@ typedef struct {
     bini_chunk_t owned_chunks[];
 } bini_op_t;
 
-bini_op_t *bini_parseini_inplace_multi(const ini_file_t *file, size_t file_count);
+bini_op_t *bini_parseini_inplace_multi(const bini_textfile_info_t *file, size_t file_count);
 
 bini_section_t *bini_find_section(const bini_chunk_t *chunk, const char *name);
 
