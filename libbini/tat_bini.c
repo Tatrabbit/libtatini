@@ -1,3 +1,4 @@
+#define TAT_BINI_C
 #include "tat_bini.h"
 
 #include <stdlib.h>
@@ -5,11 +6,19 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "bini_types.h"
+
 char *bini__memchunk_get(const size_t size);
 
 void bini__memchunk_free();
 
 jmp_buf bini_jump_buf;
+
+// static int bini_error_handler_default(const int err, const char *fmt, ...) {
+//     return err;
+// };
+
+// bini_error_handler_t bini_error_handler = bini_error_handler_default;
 
 enum {
     CHUNK_NONE = 0,
@@ -134,7 +143,7 @@ static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_tex
 
     char *line;
     while ((line = split_mem_line(&next, end))) {
-        printf("Parsing: \"%s\"", line);
+        printf("Parsing: %s: \"%s\"", file->filename, line);
         const char *section_name = parse_line_section1(line);
 
         if (section_name) {
@@ -172,12 +181,12 @@ bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bi
 }
 
 
-bini_op_t *bini_parseini_inplace_multi(const bini_textfile_info_t *file, const size_t file_count) {
-    if (file_count == 0)
+bini_op_t *bini_parse_multi(bini_files_t files) {
+    if (files.count == 0)
         return NULL;
 
-    const size_t owned_chunks_size = sizeof(bini_chunk_t) * file_count;
-    const size_t pointer_array_size = sizeof(bini_chunk_t *) * file_count;
+    const size_t owned_chunks_size = sizeof(bini_chunk_t) * files.count;
+    const size_t pointer_array_size = sizeof(bini_chunk_t *) * files.count;
     const size_t buffer_size = sizeof(bini_op_t) + owned_chunks_size + pointer_array_size;
 
     char *buf = malloc(buffer_size);
@@ -191,19 +200,27 @@ bini_op_t *bini_parseini_inplace_multi(const bini_textfile_info_t *file, const s
     }
 
     bini_op_t *ops = (bini_op_t *) buf;
-    // ops->chunk_count = file_count;
     ops->chunk_count = 0;
 
     // pointer array begins after owned chunks.
     ops->chunks = (bini_chunk_t **) buf + sizeof(bini_op_t) + owned_chunks_size;
-    for (size_t i = 0; i < file_count; i++) {
+    for (size_t i = 0; i < files.count; i++) {
         bini_chunk_t *chunk = &ops->owned_chunks[i];
         chunk->type = CHUNK_DATAFILE_INITIAL;
         ops->chunks[i] = chunk;
         ops->chunk_count += 1;
 
-        parse_file(ops, chunk, file++);
+        bini_file_info_base_t *base = (bini_file_info_base_t *) &files.files[i];
+        if (base->type == BINI_INVALID)
+            continue;
+
+        parse_file(ops, chunk, (bini_textfile_info_t *) base);
     }
 
     return ops;
+}
+
+void bini_free(bini_op_t *ops) {
+    free(ops);
+    bini__memchunk_free(); // TODO not instance-ready.
 }

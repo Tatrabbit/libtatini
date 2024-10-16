@@ -1,6 +1,8 @@
 add_library(libbini STATIC
-        tat_bini.c memchunk.c
+        bini_infos.c
+        memchunk.c
+        tat_bini.c
+        bini_types.h
 )
 
-target_include_directories(libbini PUBLIC ../include)
-target_sources(libbini PUBLIC ../include/tat_bini.h)
+target_include_directories(libbini PUBLIC ${CMAKE_SOURCE_DIR}/include)

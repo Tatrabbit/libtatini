@@ -1,19 +1,17 @@
 #ifndef TAT_BINI_H
 #define TAT_BINI_H
 
-#include <stddef.h>
+#include <stdio.h>
+#include "../libbini/bini_types.h"
 
-typedef struct {
-    ///@brief filename (optional)
-    const char *filename;
+enum {
+    BINI_ERR_SUCCESS = 0,
 
-    ///@brief Known size of file
-    size_t file_size;
-
-    ///@brief Existing buffer containing file contents.
-    ///@note This will be modified during parsing
-    char *contents;
-} bini_textfile_info_t;
+    BINI_ERR_MEMORY,
+    BINI_ERR_FILE,
+    BINI_ERR_STATE,
+    BINI_ERR_COUNT,
+};
 
 typedef struct bini_kv_s {
     const char *key;
@@ -46,12 +44,24 @@ typedef struct {
     bini_chunk_t owned_chunks[];
 } bini_op_t;
 
-bini_op_t *bini_parseini_inplace_multi(const bini_textfile_info_t *file, size_t file_count);
+typedef struct bini_files_s {
+    size_t count;
+    union bini_files_u *files; // TODO opaque pointer
+} bini_files_t;
+
+// typedef int (*bini_error_handler_t)(int err, const char *fmt, ...);
+//
+// #ifndef TAT_BINI_C
+// extern bini_error_handler_t bini_error_handler;
+// #endif
+struct bini_textfile_info_s;
+
+bini_op_t *bini_parse_multi(bini_files_t files);
 
 bini_section_t *bini_find_section(const bini_chunk_t *chunk, const char *name);
 
 bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bini_chunk_t **containing_chunk);
 
-void bini_free(bini_op_t *ini);
+void bini_free(bini_op_t *ops);
 
 #endif //TAT_BINI_H
