@@ -3,11 +3,11 @@
 
 #define VERSION_STRING "${APP_VERSION_NUMBER}"
 
-#if (${CMAKE_C_STANDARD} >= 23)
+// #if (${CMAKE_C_STANDARD} >= 23)
 #define NODISCARD [[nodiscard]]
-#else
-#define NODISCARD
-#endif
+// #else
+// #define NODISCARD
+// #endif
 
 
 #cmakedefine CMAKE_GCC_LIKE

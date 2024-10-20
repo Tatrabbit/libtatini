@@ -1,10 +1,15 @@
 #
 # Project configuration
 #
-cmake_minimum_required(VERSION 2.8.12...3.29)
+
+# TODO confirm compatibility with cmake 3.5+
+cmake_minimum_required(VERSION 2.8.12)
+
 set(CMAKE_C_STANDARD 23)
+#set(CMAKE_CXX_STANDARD 17) # TODO create C++ wrapper
 
 # Project Name
+# TODO rename "Bini Toolbox"
 project(bini-knife)
 
 
@@ -32,10 +37,13 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_GCC_LIKE OFF)
 endif ()
 
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 
 #
 # Targets
 #
 add_subdirectory(libbini)
+add_subdirectory(tat)
 add_subdirectory(src)

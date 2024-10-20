@@ -3,6 +3,8 @@
 #include "tat_bini.h"
 #include "tat_bini_infos.h"
 
+#include "tat/memory_pool.h"
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -201,7 +203,8 @@ static int parse_options(const int argc, const char *const *argv) {
 // }
 
 int main(const int argc, char **argv) {
-    int err = 0;
+    int err = BINI_ERR_SUCCESS;
+    tat_mempool_t *mempool = NULL;
     bini_infos_t *infos = NULL;
     bini_op_t *ops = NULL;
 
@@ -209,11 +212,11 @@ int main(const int argc, char **argv) {
     options.verbose = 1; // TODO
 
     if ((err = parse_options(argc, (const char **) argv)))
-        goto cleanup;;
+        goto cleanup;
 
     show_version();
 
-    const size_t input_count = count_input_files(argc, (const char **) argv);
+    size_t input_count = count_input_files(argc, (const char **) argv);
 
     print_verbose("Reading info from %d files...\n", input_count);
     infos = bini_infos_allocate(input_count, NULL);
@@ -226,16 +229,26 @@ int main(const int argc, char **argv) {
         goto cleanup;
 
     bini_files_t files;
-
     if ((err = bini_infos_readall(infos, &files)))
         goto cleanup;
 
-    ops = bini_parse_multi(files);
+    mempool = tat_mempool_new(4096);
+    if (!mempool) {
+        err = BINI_ERR_MEMORY;
+        goto cleanup;
+    }
+
+    ops = bini_parse_multi(mempool, &files);
 
 cleanup:
     if (ops != NULL)
-        bini_free(ops);
+        bini_free_ops(ops);
+
+    if (mempool != NULL)
+        tat_mempool_free(mempool);
+
     if (infos != NULL)
         bini_infos_free(infos);
+
     return err;
 }

@@ -1,6 +1,9 @@
-#define TAT_BINI_C
+#define TAT_BINI_CPP
 #include "tat_bini.h"
 
+#include <tat/memory_pool.h>
+
+#include <assert.h>
 #include <stdlib.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -8,9 +11,18 @@
 
 #include "bini_types.h"
 
-char *bini__memchunk_get(const size_t size);
+#define MEMCHUNK_SIZE 4096
 
-void bini__memchunk_free();
+enum {
+    CHUNK_NONE = 0,
+
+    CHUNK_DATAFILE_INITIAL = 0x1,
+    CHUNK_DATAFILE_OWNED = 0x2,
+    CHUNK_DATAFILE_ANY = 0x3,
+
+    CHUNK_OP = 0x4,
+};
+
 
 jmp_buf bini_jump_buf;
 
@@ -19,14 +31,6 @@ jmp_buf bini_jump_buf;
 // };
 
 // bini_error_handler_t bini_error_handler = bini_error_handler_default;
-
-enum {
-    CHUNK_NONE = 0,
-
-    CHUNK_DATAFILE_INITIAL = 0x1,
-    CHUNK_DATAFILE_OWNED = 0x2,
-    CHUNK_DATAFILE_ANY = 0x3,
-};
 
 static char *split_mem_line(char **next, const char *end) {
     char *p = *next;
@@ -124,8 +128,8 @@ static const char *parse_line_section1(char *line) {
     return NULL;
 }
 
-static bini_section_t *new_section(const char *name) {
-    bini_section_t *section = (bini_section_t *) bini__memchunk_get(sizeof(bini_section_t));
+static bini_section_t *new_section(tat_mempool_t *mempool, const char *name) {
+    bini_section_t *section = tat_mempool_getmem(mempool, sizeof(bini_section_t));
 
     section->name = name;
     section->key_count = 0;
@@ -139,7 +143,7 @@ static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_tex
     char *next = file->contents;
     const char *end = file->contents + file->file_size;
 
-    bini_section_t *current_section = new_section(NULL);
+    bini_section_t *current_section = new_section(ops->mempool, NULL);
 
     char *line;
     while ((line = split_mem_line(&next, end))) {
@@ -148,12 +152,22 @@ static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_tex
 
         if (section_name) {
             // current_section = bini_find_section_all(ops, section_name, NULL);
-            current_section = new_section(section_name);
+            current_section = new_section(ops->mempool, section_name);
             printf(" = Section: \"%s\"\n", current_section->name);
         } else
             printf(" (Nothing found.)\n");
     }
 }
+
+// int bini_new(bini_t **bini, size_t chunk_size) {
+//     tat_mempool_t *mempool;
+//     *bini = mempool = tat_mempool_new(chunk_size);
+//
+//     if (!mempool)
+//         return BINI_ERR_MEMORY;
+//
+//     return BINI_ERR_SUCCESS;
+// }
 
 bini_section_t *bini_find_section(const bini_chunk_t *chunk, const char *name) {
     for (size_t i = 0; i < chunk->datafile.section_count; ++i) {
@@ -180,13 +194,15 @@ bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bi
     return NULL;
 }
 
+// TODO move into the multi module
+bini_op_t *bini_parse_multi(tat_mempool_t *mempool, const bini_files_t *files) {
+    const size_t files_count = files->count;
 
-bini_op_t *bini_parse_multi(bini_files_t files) {
-    if (files.count == 0)
+    if (files_count == 0)
         return NULL;
 
-    const size_t owned_chunks_size = sizeof(bini_chunk_t) * files.count;
-    const size_t pointer_array_size = sizeof(bini_chunk_t *) * files.count;
+    const size_t owned_chunks_size = sizeof(bini_chunk_t) * files_count;
+    const size_t pointer_array_size = sizeof(bini_chunk_t *) * files_count;
     const size_t buffer_size = sizeof(bini_op_t) + owned_chunks_size + pointer_array_size;
 
     char *buf = malloc(buffer_size);
@@ -194,23 +210,26 @@ bini_op_t *bini_parse_multi(bini_files_t files) {
         return NULL;
 
     if (setjmp(bini_jump_buf)) {
-        bini__memchunk_free();
         free(buf);
         return NULL;
     }
 
     bini_op_t *ops = (bini_op_t *) buf;
+    ops->type = CHUNK_OP;
+    ops->mempool = mempool;
     ops->chunk_count = 0;
+
+    const union bini_files_u *files_array = files->files;
 
     // pointer array begins after owned chunks.
     ops->chunks = (bini_chunk_t **) buf + sizeof(bini_op_t) + owned_chunks_size;
-    for (size_t i = 0; i < files.count; i++) {
+    for (size_t i = 0; i < files_count; i++) {
         bini_chunk_t *chunk = &ops->owned_chunks[i];
         chunk->type = CHUNK_DATAFILE_INITIAL;
         ops->chunks[i] = chunk;
         ops->chunk_count += 1;
 
-        bini_file_info_base_t *base = (bini_file_info_base_t *) &files.files[i];
+        bini_file_info_base_t *base = (bini_file_info_base_t *) (files_array + i);
         if (base->type == BINI_INVALID)
             continue;
 
@@ -220,7 +239,6 @@ bini_op_t *bini_parse_multi(bini_files_t files) {
     return ops;
 }
 
-void bini_free(bini_op_t *ops) {
+void bini_free_ops(bini_op_t *ops) {
     free(ops);
-    bini__memchunk_free(); // TODO not instance-ready.
 }

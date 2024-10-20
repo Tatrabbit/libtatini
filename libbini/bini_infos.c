@@ -19,7 +19,7 @@ bini_infos_t *bini_infos_allocate(size_t count, bini_infos_t *infos) {
     const size_t total_size = sizeof(bini_infos_t) + size_each * count;
     size_t clear_start = 0;
 
-    if (infos != NULL) {
+    if (infos) {
         assert(infos->buffer == NULL);
 
         clear_start = sizeof(bini_infos_t) + infos->count * size_each;
@@ -27,17 +27,17 @@ bini_infos_t *bini_infos_allocate(size_t count, bini_infos_t *infos) {
     }
 
     infos = realloc(infos, total_size);
-    if (infos == NULL)
-        return NULL;
+    if (!infos)
+        return NULL; // TODO error handling
 
-    memset(infos, clear_start, total_size - clear_start);
+    memset(infos, 0, total_size - clear_start);
     infos->count = count;
 
     return infos;
 }
 
 static void close_info(struct bini_file_info_base_s *info) {
-    if (info->handle != NULL) {
+    if (info->handle) {
         fclose(info->handle);
         info->handle = NULL;
     }
@@ -49,11 +49,11 @@ void bini_infos_free(bini_infos_t *infos) {
     for (size_t i = 0; i < infos->count; i++) {
         const struct bini_file_info_base_s *info = &infos->files[i].base;
 
-        if (info->handle != NULL)
+        if (info->handle)
             fclose(info->handle);
     }
 
-    if (infos->buffer != NULL)
+    if (infos->buffer)
         free(infos->buffer);
 
     free(infos);
@@ -64,8 +64,8 @@ int bini_infos_open_one_t(bini_infos_t *infos, const size_t index, const char *f
     assert(filename != NULL);
 
     FILE *handle = fopen(filename, "rb");
-    if (handle == NULL)
-        return 1;
+    if (!handle)
+        return 1; // TODO error handling
 
     bini_textfile_info_t *info = &infos->files[index].text;
     close_info((struct bini_file_info_base_s *) info);
@@ -82,7 +82,7 @@ int bini_infos_open_one_t(bini_infos_t *infos, const size_t index, const char *f
 }
 
 static int bini_read_textfile_info(bini_textfile_info_t *info, char **shared_buffer) {
-    if (info->handle == NULL)
+    if (!info->handle)
         return BINI_ERR_STATE;
 
     char *buffer = *shared_buffer;
@@ -114,8 +114,8 @@ int bini_infos_readall(bini_infos_t *infos, bini_files_t *bini_files) {
     }
 
     infos->buffer = malloc(infos->initial_buffer_size);
-    if (infos->buffer == NULL)
-        return BINI_ERR_MEMORY;
+    if (!infos->buffer)
+        return BINI_ERR_MEMORY; // TODO error handling
 
     // Read & assign buffers
     char *shared_buffer = infos->buffer;

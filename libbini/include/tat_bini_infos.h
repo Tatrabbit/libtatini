@@ -5,8 +5,10 @@
 #ifndef TAT_BINI_INFOS_H
 #define TAT_BINI_INFOS_H
 
+// TODO restructure this while directory...
+#include "../bini_types.h"
+
 // TODO opaque pointers
-#include "../libbini/bini_types.h"
 
 typedef struct {
     size_t count;

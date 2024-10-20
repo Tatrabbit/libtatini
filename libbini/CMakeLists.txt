@@ -1,8 +1,9 @@
+cmake_minimum_required(VERSION 3.1)
+
 add_library(libbini STATIC
-        bini_infos.c
-        memchunk.c
         tat_bini.c
-        bini_types.h
+        bini_infos.c
 )
 
-target_include_directories(libbini PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(libbini PUBLIC libtat_c)
+target_include_directories(libbini PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
