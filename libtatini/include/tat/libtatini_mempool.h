@@ -1,10 +1,10 @@
-#ifndef TAT_MEMORY_POOL_H
-#define TAT_MEMORY_POOL_H
+#ifndef TAT_LIBTATINI_MEMPOOL_H
+#define TAT_LIBTATINI_MEMPOOL_H
 
 #include <stddef.h>
 
 
-// TODO move to its own file, error handling
+// TODO remove, use TATINI instead
 enum {
     TAT_ERR_SUCCESS = 0,
 
@@ -15,8 +15,8 @@ enum {
 };
 
 
-typedef struct tat_memchunk_s {
-    struct tat_memchunk_s *next;
+typedef struct tatini_memchunk_s {
+    struct tatini_memchunk_s *next;
     size_t size;
     size_t capacity;
     char data[];
@@ -25,14 +25,14 @@ typedef struct tat_memchunk_s {
 
 /** \brief Memory pool to reduce malloc() calls.
 */
-typedef struct tat_mempool_s {
+typedef struct tatini_mempool_s {
     size_t chunk_size;
     tat_memchunk_t *first;
     tat_memchunk_t *last;
 
     // TODO optimize by skipping all chunks with less than a minimum size
     // tat_memchunk_t *first_available;
-} tat_mempool_t;
+} tatini_mempool_t;
 
 
 // TODO opaque pointer
@@ -46,16 +46,13 @@ typedef struct tat_mempool_s {
 
 
 /** \brief Create a new memory pool.
- *
- * \param[out] bini Allocated object, or NULL on memory error.
  * \param chunk_size The number of bytes allocated each time malloc() is called.
- *
- * \return BINI_ERR_SUCCESS or BINI_ERR_MEMORY
+ * \return Allocated mempool, or NULL if out of memory
  */
-tat_mempool_t *tat_mempool_new(size_t chunk_size);
+tatini_mempool_t *tatini_mempool_new(size_t chunk_size);
 
-void tat_mempool_free(const tat_mempool_t *mempool);
+void tatini_mempool_free(const tatini_mempool_t *mempool);
 
-void *tat_mempool_getmem(tat_mempool_t *mempool, size_t size);
+void *tatini_mempool_getmem(tatini_mempool_t *mempool, size_t size);
 
 #endif

@@ -1,4 +1,4 @@
-#include "./include/tat/mempool.h"
+#include "./include/tat/libtatini_mempool.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -15,11 +15,11 @@ static inline void init_chunk(tat_memchunk_t *chunk, size_t capacity) {
     };
 }
 
-static tat_memchunk_t *alloc_chunk(tat_mempool_t *mempool, size_t capacity) {
+static tat_memchunk_t *alloc_chunk(tatini_mempool_t *mempool, size_t capacity) {
     tat_memchunk_t *chunk = malloc(sizeof(tat_memchunk_t) + mempool->chunk_size);
     if (!chunk)
         return NULL; // TODO error handling
-    // longjmp(bini_jump_buf, 1);
+    // longjmp(tatini_jump_buf, 1);
 
     init_chunk(chunk, capacity);
 
@@ -29,19 +29,19 @@ static tat_memchunk_t *alloc_chunk(tat_mempool_t *mempool, size_t capacity) {
     return chunk;
 }
 
-tat_mempool_t *tat_mempool_new(const size_t chunk_size) {
+tatini_mempool_t *tatini_mempool_new(const size_t chunk_size) {
     // Assert that the first memchunk is correctly aligned.
-    _Static_assert((sizeof(tat_mempool_t) % _Alignof(tat_memchunk_t)) == 0);
+    _Static_assert((sizeof(tatini_mempool_t) % _Alignof(tat_memchunk_t)) == 0);
 
     // Allocate two for the price of one
     const size_t first_chunk_size = sizeof(tat_memchunk_t) + chunk_size;
-    tat_mempool_t *mempool = malloc(sizeof(tat_mempool_t) + first_chunk_size);
+    tatini_mempool_t *mempool = malloc(sizeof(tatini_mempool_t) + first_chunk_size);
     if (!mempool)
         return NULL; // TODO error handling
 
     tat_memchunk_t *const chunk = (tat_memchunk_t *) (mempool + 1);
 
-    *mempool = (tat_mempool_t){
+    *mempool = (tatini_mempool_t){
         .
         chunk_size = chunk_size,
         .
@@ -53,7 +53,7 @@ tat_mempool_t *tat_mempool_new(const size_t chunk_size) {
     return mempool;
 }
 
-void tat_mempool_free(const tat_mempool_t *mempool) {
+void tatini_mempool_free(const tatini_mempool_t *mempool) {
     tat_memchunk_t *first = mempool->first;
 
     if (!first)
@@ -67,7 +67,7 @@ void tat_mempool_free(const tat_mempool_t *mempool) {
     }
 }
 
-void *tat_mempool_getmem(tat_mempool_t *mempool, const size_t size) {
+void *tatini_mempool_getmem(tatini_mempool_t *mempool, const size_t size) {
     const register size_t chunk_size = mempool->chunk_size;
 
     tat_memchunk_t *chunk;

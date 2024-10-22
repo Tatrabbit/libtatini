@@ -1,8 +1,8 @@
-#define TAT_BINI_CPP
+#define TAT_LIBTATINI_C
 #include "./include/tat/libtatini.h"
 
 // TODO should be optional!
-#include "./include/tat/mempool.h"
+#include "./include/tat/libtatini_mempool.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -25,7 +25,7 @@ enum {
 };
 
 
-jmp_buf bini_jump_buf;
+jmp_buf tatini_jump_buf;
 
 // static int bini_error_handler_default(const int err, const char *fmt, ...) {
 //     return err;
@@ -129,8 +129,8 @@ static const char *parse_line_section1(char *line) {
     return NULL;
 }
 
-static bini_section_t *new_section(tat_mempool_t *mempool, const char *name) {
-    bini_section_t *section = tat_mempool_getmem(mempool, sizeof(bini_section_t));
+static tatini_section_t *new_section(tatini_mempool_t *mempool, const char *name) {
+    tatini_section_t *section = tatini_mempool_getmem(mempool, sizeof(tatini_section_t));
 
     section->name = name;
     section->key_count = 0;
@@ -140,11 +140,11 @@ static bini_section_t *new_section(tat_mempool_t *mempool, const char *name) {
     return section;
 }
 
-static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_textfile_info_t *file) {
+static void parse_file(const tatini_op_t *ops, tatini_chunk_t *chunk, const bini_textfile_info_t *file) {
     char *next = file->contents;
     const char *end = file->contents + file->file_size;
 
-    bini_section_t *current_section = new_section(ops->mempool, NULL);
+    tatini_section_t *current_section = new_section(ops->mempool, NULL);
 
     char *line;
     while ((line = split_mem_line(&next, end))) {
@@ -152,7 +152,7 @@ static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_tex
         const char *section_name = parse_line_section1(line);
 
         if (section_name) {
-            // current_section = bini_find_section_all(ops, section_name, NULL);
+            // current_section = tatini_find_section_all(ops, section_name, NULL);
             current_section = new_section(ops->mempool, section_name);
             printf(" = Section: \"%s\"\n", current_section->name);
         } else
@@ -161,31 +161,31 @@ static void parse_file(const bini_op_t *ops, bini_chunk_t *chunk, const bini_tex
 }
 
 // int bini_new(bini_t **bini, size_t chunk_size) {
-//     tat_mempool_t *mempool;
-//     *bini = mempool = tat_mempool_new(chunk_size);
+//     tatini_mempool_t *mempool;
+//     *bini = mempool = tatini_mempool_new(chunk_size);
 //
 //     if (!mempool)
-//         return BINI_ERR_MEMORY;
+//         return TATINI_ERR_MEMORY;
 //
-//     return BINI_ERR_SUCCESS;
+//     return TATINI_ERR_SUCCESS;
 // }
 
-bini_section_t *bini_find_section(const bini_chunk_t *chunk, const char *name) {
+tatini_section_t *tatini_find_section(const tatini_chunk_t *chunk, const char *name) {
     for (size_t i = 0; i < chunk->datafile.section_count; ++i) {
-        bini_section_t *section = chunk->datafile.sections[i];
+        tatini_section_t *section = chunk->datafile.sections[i];
         if (strcmp(section->name, name) == 0)
             return section;
     }
     return NULL;
 }
 
-bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bini_chunk_t **containing_chunk) {
+tatini_section_t *tatini_find_section_all(const tatini_op_t *ops, const char *name, tatini_chunk_t **containing_chunk) {
     for (size_t i = 0; i < ops->chunk_count; ++i) {
-        bini_chunk_t *chunk = ops->chunks[i];
+        tatini_chunk_t *chunk = ops->chunks[i];
         if (!(chunk->type & CHUNK_DATAFILE_ANY))
             continue;
 
-        bini_section_t *section = bini_find_section(chunk, name);
+        tatini_section_t *section = tatini_find_section(chunk, name);
         if (section != NULL) {
             if (containing_chunk != NULL)
                 *containing_chunk = chunk;
@@ -196,15 +196,15 @@ bini_section_t *bini_find_section_all(const bini_op_t *ops, const char *name, bi
 }
 
 // TODO move into the multi module
-bini_op_t *bini_parse_multi(tat_mempool_t *mempool, const bini_files_t *files) {
+tatini_op_t *tatini_parse_multi(tatini_mempool_t *mempool, const tatini_files_t *files) {
     const size_t files_count = files->count;
 
     if (files_count == 0)
         return NULL;
 
-    const size_t owned_chunks_size = sizeof(bini_chunk_t) * files_count;
-    const size_t pointer_array_size = sizeof(bini_chunk_t *) * files_count;
-    const size_t buffer_size = sizeof(bini_op_t) + owned_chunks_size + pointer_array_size;
+    const size_t owned_chunks_size = sizeof(tatini_chunk_t) * files_count;
+    const size_t pointer_array_size = sizeof(tatini_chunk_t *) * files_count;
+    const size_t buffer_size = sizeof(tatini_op_t) + owned_chunks_size + pointer_array_size;
 
     char *buf = malloc(buffer_size);
     if (buf == NULL)
@@ -215,23 +215,23 @@ bini_op_t *bini_parse_multi(tat_mempool_t *mempool, const bini_files_t *files) {
         return NULL;
     }
 
-    bini_op_t *ops = (bini_op_t *) buf;
+    tatini_op_t *ops = (tatini_op_t *) buf;
     ops->type = CHUNK_OP;
     ops->mempool = mempool;
     ops->chunk_count = 0;
 
-    const union bini_files_u *files_array = files->files;
+    const union tatini_files_u *files_array = files->files;
 
     // pointer array begins after owned chunks.
-    ops->chunks = (bini_chunk_t **) buf + sizeof(bini_op_t) + owned_chunks_size;
+    ops->chunks = (tatini_chunk_t **) buf + sizeof(tatini_op_t) + owned_chunks_size;
     for (size_t i = 0; i < files_count; i++) {
-        bini_chunk_t *chunk = &ops->owned_chunks[i];
+        tatini_chunk_t *chunk = &ops->owned_chunks[i];
         chunk->type = CHUNK_DATAFILE_INITIAL;
         ops->chunks[i] = chunk;
         ops->chunk_count += 1;
 
         bini_file_info_base_t *base = (bini_file_info_base_t *) (files_array + i);
-        if (base->type == BINI_INVALID)
+        if (base->type == TATINI_INVALID)
             continue;
 
         parse_file(ops, chunk, (bini_textfile_info_t *) base);
@@ -240,6 +240,6 @@ bini_op_t *bini_parse_multi(tat_mempool_t *mempool, const bini_files_t *files) {
     return ops;
 }
 
-void bini_free_ops(bini_op_t *ops) {
+void tatini_free_ops(tatini_op_t *ops) {
     free(ops);
 }

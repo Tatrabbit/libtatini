@@ -18,17 +18,17 @@ typedef struct {
 
     char *buffer;
 
-    union bini_files_u files[];
-} bini_infos_t;
+    union tatini_files_u files[];
+} tatini_infos_t;
 
 ///@brief Allocate an Infos batch
 ///@param count The number of files to allocate
 ///@param append If not NULL, realloc will be used to extend the size of an existing batch.
 ///@return The newly (re)allocated infos batch, or NULL on memory error
 ///@note The returned pointer must be passed to @see bini_infos_free to avoid memory leaks.
-bini_infos_t *bini_infos_allocate(size_t count, bini_infos_t *append);
+tatini_infos_t *tatini_infos_allocate(size_t count, tatini_infos_t *append);
 
-void bini_infos_free(bini_infos_t *infos);
+void tatini_infos_free(tatini_infos_t *infos);
 
 ///@brief Atomically open one text file in the batch.
 ///
@@ -38,8 +38,8 @@ void bini_infos_free(bini_infos_t *infos);
 ///@param index The file index to open.
 ///@param filename The file name to set.
 ///@return On success, 0 is returned. Otherwise, the error code.
-int bini_infos_open_one_t(bini_infos_t *infos, size_t index, const char *filename);
+int tatini_infos_open_one_t(tatini_infos_t *infos, size_t index, const char *filename);
 
-int bini_infos_readall(bini_infos_t *infos, bini_files_t *bini_files);
+int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files);
 
 #endif

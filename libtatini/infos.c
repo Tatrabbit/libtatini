@@ -14,15 +14,15 @@ static size_t get_fsize(FILE *f) {
     return size;
 }
 
-bini_infos_t *bini_infos_allocate(size_t count, bini_infos_t *infos) {
-    const size_t size_each = sizeof(union bini_files_u);
-    const size_t total_size = sizeof(bini_infos_t) + size_each * count;
+tatini_infos_t *tatini_infos_allocate(size_t count, tatini_infos_t *infos) {
+    const size_t size_each = sizeof(union tatini_files_u);
+    const size_t total_size = sizeof(tatini_infos_t) + size_each * count;
     size_t clear_start = 0;
 
     if (infos) {
         assert(infos->buffer == NULL);
 
-        clear_start = sizeof(bini_infos_t) + infos->count * size_each;
+        clear_start = sizeof(tatini_infos_t) + infos->count * size_each;
         count += infos->count;
     }
 
@@ -43,7 +43,7 @@ static void close_info(struct bini_file_info_base_s *info) {
     }
 }
 
-void bini_infos_free(bini_infos_t *infos) {
+void tatini_infos_free(tatini_infos_t *infos) {
     assert(infos != NULL);
 
     for (size_t i = 0; i < infos->count; i++) {
@@ -59,7 +59,7 @@ void bini_infos_free(bini_infos_t *infos) {
     free(infos);
 }
 
-int bini_infos_open_one_t(bini_infos_t *infos, const size_t index, const char *filename) {
+int tatini_infos_open_one_t(tatini_infos_t *infos, const size_t index, const char *filename) {
     assert(index < infos->count);
     assert(filename != NULL);
 
@@ -71,7 +71,7 @@ int bini_infos_open_one_t(bini_infos_t *infos, const size_t index, const char *f
     close_info((struct bini_file_info_base_s *) info);
     memset(info, 0, sizeof(*info));
 
-    info->type = BINI_TEXTFILE;
+    info->type = TATINI_TEXTFILE;
     info->handle = handle;
     info->filename = filename;
 
@@ -83,14 +83,14 @@ int bini_infos_open_one_t(bini_infos_t *infos, const size_t index, const char *f
 
 static int bini_read_textfile_info(bini_textfile_info_t *info, char **shared_buffer) {
     if (!info->handle)
-        return BINI_ERR_STATE;
+        return TATINI_ERR_STATE;
 
     char *buffer = *shared_buffer;
 
     fseek(info->handle, 0, SEEK_SET);
     const size_t read_count = fread(buffer, info->file_size - 1, 1, info->handle);
     if (read_count != 1)
-        return BINI_ERR_FILE;
+        return TATINI_ERR_FILE;
 
     info->contents = buffer;
     *shared_buffer += info->file_size;
@@ -101,7 +101,7 @@ static int bini_read_textfile_info(bini_textfile_info_t *info, char **shared_buf
 #define GET_BASE_INFO(x, i)((struct bini_file_info_base_s *) (x->files + i))
 #define GET_TEXT_INFO(x, i)((bini_textfile_info_t *) (x->files + i))
 
-int bini_infos_readall(bini_infos_t *infos, bini_files_t *bini_files) {
+int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files) {
     assert(infos != NULL);
     assert(infos->buffer == NULL);
 
@@ -115,7 +115,7 @@ int bini_infos_readall(bini_infos_t *infos, bini_files_t *bini_files) {
 
     infos->buffer = malloc(infos->initial_buffer_size);
     if (!infos->buffer)
-        return BINI_ERR_MEMORY; // TODO error handling
+        return TATINI_ERR_MEMORY; // TODO error handling
 
     // Read & assign buffers
     char *shared_buffer = infos->buffer;
@@ -131,7 +131,7 @@ int bini_infos_readall(bini_infos_t *infos, bini_files_t *bini_files) {
     for (size_t i = 0; i < infos->count; ++i)
         close_info(GET_BASE_INFO(infos, i));
 
-    bini_files->count = infos->count;
-    bini_files->files = infos->files;
+    files->count = infos->count;
+    files->files = infos->files;
     return 0;
 }

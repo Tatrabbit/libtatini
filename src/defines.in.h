@@ -1,5 +1,5 @@
-#ifndef DEFINES_H
-#define DEFINES_H
+#ifndef TAT_TATINI_DEFINES_H
+#define TAT_TATINI_DEFINES_H
 
 #define VERSION_STRING "${APP_VERSION_NUMBER}"
 

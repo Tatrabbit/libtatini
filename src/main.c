@@ -3,7 +3,7 @@
 #include "tat/libtatini.h"
 #include "tat/libtatini_infos.h"
 
-#include "tat/mempool.h"
+#include "tat/libtatini_mempool.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -14,7 +14,7 @@
 enum {
     ERR_SUCCESS = 0,
 
-    ERR_USAGE = BINI_ERR_COUNT,
+    ERR_USAGE = TATINI_ERR_COUNT,
 };
 
 typedef struct {
@@ -39,7 +39,7 @@ static void print_info(const char *fmt, ...) {
 }
 
 static void show_version() {
-    print_info("Bini-Knife by Tatrabbit (Version " VERSION_STRING ")\n");
+    print_info("Tini: Teeny INI tool by Tatrabbit (Version " VERSION_STRING ")\n");
 }
 
 static int show_usage(const int code) {
@@ -57,7 +57,7 @@ static int print_usage_error(const char *fmt, ...) {
 
 static int print_mem_error() {
     fputs("Out of memory.\n", stderr);
-    return BINI_ERR_MEMORY;
+    return TATINI_ERR_MEMORY;
 }
 
 static int print_file_error(const char *fmt, ...) {
@@ -65,7 +65,7 @@ static int print_file_error(const char *fmt, ...) {
     va_start(ap, fmt);
     vprint_info(fmt, ap);
     va_end(ap);
-    return BINI_ERR_FILE;
+    return TATINI_ERR_FILE;
 }
 
 static void print_verbose(const char *fmt, ...) {
@@ -161,7 +161,7 @@ static int count_input_files(const unsigned int argc, const char *const *argv) {
 }
 
 struct file_arg_data_s {
-    bini_infos_t *infos;
+    tatini_infos_t *infos;
     size_t loaded_count;
 };
 
@@ -169,7 +169,7 @@ static int open_file_arg(const char *filename, void *data) {
     struct file_arg_data_s *arg_data = (struct file_arg_data_s *) data;
 
 
-    const int err = bini_infos_open_one_t(arg_data->infos, arg_data->loaded_count, filename);
+    const int err = tatini_infos_open_one_t(arg_data->infos, arg_data->loaded_count, filename);
     if (err)
         return err; // TODO Use longjmp
 
@@ -177,7 +177,7 @@ static int open_file_arg(const char *filename, void *data) {
     return 0;
 }
 
-static int open_input_files(const unsigned int argc, const char *const *argv, bini_infos_t *infos) {
+static int open_input_files(const unsigned int argc, const char *const *argv, tatini_infos_t *infos) {
     struct file_arg_data_s arg_data = {
         .infos = infos,
         .loaded_count = 0,
@@ -203,10 +203,10 @@ static int parse_options(const int argc, const char *const *argv) {
 // }
 
 int main(const int argc, char **argv) {
-    int err = BINI_ERR_SUCCESS;
-    tat_mempool_t *mempool = NULL;
-    bini_infos_t *infos = NULL;
-    bini_op_t *ops = NULL;
+    int err = TATINI_ERR_SUCCESS;
+    tatini_mempool_t *mempool = NULL;
+    tatini_infos_t *infos = NULL;
+    tatini_op_t *ops = NULL;
 
     memset(&options, 0, sizeof(options));
     options.verbose = 1; // TODO
@@ -219,36 +219,36 @@ int main(const int argc, char **argv) {
     size_t input_count = count_input_files(argc, (const char **) argv);
 
     print_verbose("Reading info from %d files...\n", input_count);
-    infos = bini_infos_allocate(input_count, NULL);
+    infos = tatini_infos_allocate(input_count, NULL);
     if (!infos) {
-        err = BINI_ERR_MEMORY;
+        err = TATINI_ERR_MEMORY;
         goto cleanup;
     }
 
     if ((err = open_input_files(argc, (const char **) argv, infos)))
         goto cleanup;
 
-    bini_files_t files;
-    if ((err = bini_infos_readall(infos, &files)))
+    tatini_files_t files;
+    if ((err = tatini_infos_readall(infos, &files)))
         goto cleanup;
 
-    mempool = tat_mempool_new(4096);
+    mempool = tatini_mempool_new(4096);
     if (!mempool) {
-        err = BINI_ERR_MEMORY;
+        err = TATINI_ERR_MEMORY;
         goto cleanup;
     }
 
-    ops = bini_parse_multi(mempool, &files);
+    ops = tatini_parse_multi(mempool, &files);
 
 cleanup:
     if (ops != NULL)
-        bini_free_ops(ops);
+        tatini_free_ops(ops);
 
     if (mempool != NULL)
-        tat_mempool_free(mempool);
+        tatini_mempool_free(mempool);
 
     if (infos != NULL)
-        bini_infos_free(infos);
+        tatini_infos_free(infos);
 
     return err;
 }
