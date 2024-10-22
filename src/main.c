@@ -1,9 +1,9 @@
 #include "defines.h"
 
-#include "tat_bini.h"
-#include "tat_bini_infos.h"
+#include "tat/bini.h"
+#include "tat/bini_infos.h"
 
-#include "tat/memory_pool.h"
+#include "tat/mempool.h"
 
 #include <assert.h>
 #include <stdarg.h>

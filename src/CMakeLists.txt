@@ -6,4 +6,4 @@ add_executable(bini-knife
         main.c
 )
 
-target_link_libraries(bini-knife PRIVATE libbini libtat_c)
+target_link_libraries(bini-knife PRIVATE libbini)

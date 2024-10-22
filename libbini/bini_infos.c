@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tat_bini.h"
-#include "tat_bini_infos.h"
+#include "./include/tat/bini.h"
+#include "./include/tat/bini_infos.h"
 
-#include "bini_types.h"
+#include "./bini_types.h"
 
 static size_t get_fsize(FILE *f) {
     fseek(f, 0, SEEK_END);

@@ -1,7 +1,7 @@
 #ifndef TAT_BINI_HPP
 #define TAT_BINI_HPP
 
-#include "stddef.h"
+#include <stddef.h>
 
 // TODO use TAT_ERR_*
 enum {

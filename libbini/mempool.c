@@ -1,16 +1,17 @@
-#include "./include/tat/memory_pool.h"
+#include "./include/tat/mempool.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
-// inline memory_pool::MemChunk::MemChunk(): next(nullptr), size(0) {
-// }
 static inline void init_chunk(tat_memchunk_t *chunk, size_t capacity) {
     *chunk = (tat_memchunk_t){
-        .next = NULL,
-        .size = 0,
-        .capacity = capacity
+        .
+        next = NULL,
+        .
+        size = 0,
+        .
+        capacity = capacity
     };
 }
 
@@ -41,9 +42,12 @@ tat_mempool_t *tat_mempool_new(const size_t chunk_size) {
     tat_memchunk_t *const chunk = (tat_memchunk_t *) (mempool + 1);
 
     *mempool = (tat_mempool_t){
-        .chunk_size = chunk_size,
-        .first = chunk,
-        .last = chunk
+        .
+        chunk_size = chunk_size,
+        .
+        first = chunk,
+        .
+        last = chunk
     };
 
     return mempool;

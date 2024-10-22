@@ -1,7 +1,8 @@
 #define TAT_BINI_CPP
-#include "tat_bini.h"
+#include "./include/tat/bini.h"
 
-#include <tat/memory_pool.h>
+// TODO should be optional!
+#include "./include/tat/mempool.h"
 
 #include <assert.h>
 #include <stdlib.h>

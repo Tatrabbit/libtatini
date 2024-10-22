@@ -45,5 +45,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # Targets
 #
 add_subdirectory(libbini)
-add_subdirectory(tat)
+#add_subdirectory(tat)
 add_subdirectory(src)

@@ -5,8 +5,10 @@
 #ifndef TAT_BINI_INFOS_H
 #define TAT_BINI_INFOS_H
 
-// TODO restructure this while directory...
-#include "../bini_types.h"
+// TODO restructure this whole directory...
+#include "../../bini_types.h"
+
+#include <stddef.h>
 
 // TODO opaque pointers
 
