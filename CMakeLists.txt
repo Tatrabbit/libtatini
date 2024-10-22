@@ -9,8 +9,7 @@ set(CMAKE_C_STANDARD 23)
 #set(CMAKE_CXX_STANDARD 17) # TODO create C++ wrapper
 
 # Project Name
-# TODO rename "Bini Toolbox"
-project(bini-knife)
+project(tatini)
 
 
 #
@@ -44,6 +43,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 #
 # Targets
 #
-add_subdirectory(libbini)
-#add_subdirectory(tat)
+add_subdirectory(libtatini)
 add_subdirectory(src)

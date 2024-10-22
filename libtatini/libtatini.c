@@ -1,5 +1,5 @@
 #define TAT_BINI_CPP
-#include "./include/tat/bini.h"
+#include "./include/tat/libtatini.h"
 
 // TODO should be optional!
 #include "./include/tat/mempool.h"
@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "bini_types.h"
+#include "libtatini_types.h"
 
 #define MEMCHUNK_SIZE 4096
 

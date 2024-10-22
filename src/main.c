@@ -1,7 +1,7 @@
 #include "defines.h"
 
-#include "tat/bini.h"
-#include "tat/bini_infos.h"
+#include "tat/libtatini.h"
+#include "tat/libtatini_infos.h"
 
 #include "tat/mempool.h"
 

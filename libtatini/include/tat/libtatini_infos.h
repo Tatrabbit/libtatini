@@ -2,11 +2,11 @@
 ///
 ///@note This module is meant for when the number of file to be opened is known, and they are to
 ///      be opened and parsed as one, atomic operation.
-#ifndef TAT_BINI_INFOS_H
-#define TAT_BINI_INFOS_H
+#ifndef TAT_LIBTATINI_INFOS_H
+#define TAT_LIBTATINI_INFOS_H
 
-// TODO restructure this whole directory...
-#include "../../bini_types.h"
+// TODO This must not be included!
+#include "../../libtatini_types.h"
 
 #include <stddef.h>
 

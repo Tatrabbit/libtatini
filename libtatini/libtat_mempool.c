@@ -59,6 +59,8 @@ void tat_mempool_free(const tat_mempool_t *mempool) {
     if (!first)
         return;
 
+    // TODO fix this
+
     for (tat_memchunk_t *next, *chunk = first; chunk; chunk = next) {
         next = chunk->next;
         free(chunk);
