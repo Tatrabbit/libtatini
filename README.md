@@ -56,14 +56,14 @@ representation of an ini file).
 $ tatini --flavor greetings.ini=validate -i hello.ini && echo "All's good!"
 
   # Clean a parsable, badly-formed file
-$ tatini --flavor greetings.ini -i hello.ini -o hello_repaired.ini"
+$ tatini --flavor greetings.ini -i hello.ini -o hello_repaired.ini
 
   # Clean a parsable, badly-formed file
-$ tatini --flavor greetings.ini -i hello.ini -o hello_repaired.ini"
+$ tatini --flavor greetings.ini -i hello.ini -o hello_repaired.ini
 
   # Change a file's flavor
 $ tatini --flavor greetings.ini=validate -i hello.ini \
-   -F =UseQuotes=NO -o hello_repaired.ini"
+   -F =UseQuotes=NO -o hello_repaired.ini
 ```
 
 ##### Merging and saving #####
@@ -71,7 +71,7 @@ $ tatini --flavor greetings.ini=validate -i hello.ini \
 ```
 $ tatini --flavor foods.ini \
   -i fruits.ini -i vegetables.ini \  # Read fruits, then merge veg into it
-    -o vegetarian_menu.ini \         # ...tnen write the state into a file
+    -o vegetarian_menu.ini \         # ...then write the state into a file
     -i meats.ini -o regular_menu.ini # Now add some meat, and write another!
 ```
 
@@ -79,12 +79,15 @@ $ tatini --flavor foods.ini \
 
 ```
 #!/usr/bin/env bash
-set -e
-skv=$(tatini -F Pears=Type=Int?=validate \ # Explicitly validate an int
+skv=$(tatini -F Pears=Type=?Int=validate \ # Explicitly validate an int
                 -i foods.ini             \ # Parse, exit 1 if failed
-                -k Fruits -g Pears=?0) # Look in the [Fruits] section for Pears
+                -k Fruits -g Pears=?0) # Look in the [Fruits] section for Pears)
+errno=$?
 
-n_pears=$(echo "$skv" cut -f 3)
+if (( $errno != 0 )); then exit $errno; fi
+
+n_pears=$(echo "$skv" | cut -f 3); # Section, Key, Value
+echo "Number of pears: $n_pears"
 ```
 
 #### Options ####
@@ -121,12 +124,6 @@ additionally, immediately fail with an error code.
 preferable to make a Flavor file. This option, however, is designed for an
 interactive shell where robustness and forward-thinking are a waste of time.
 It can, for instance, quickly set case-sensitivity and treatment of quotes.
-
-`--fail-missing|-m`
-: If a key can't be found, exit with error 1
-
-`--no-fail-missing|-M`
-: If a key can't be found, continue silently. This is the default.
 
 #### Actions ####
 
