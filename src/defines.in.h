@@ -1,6 +1,8 @@
 #ifndef TAT_TATINI_DEFINES_H
 #define TAT_TATINI_DEFINES_H
 
+#include "tat/libtatini.h"
+
 #define VERSION_STRING "${APP_VERSION_NUMBER}"
 
 // #if (${CMAKE_C_STANDARD} >= 23)
@@ -9,7 +11,6 @@
 // #define NODISCARD
 // #endif
 
-
 #cmakedefine CMAKE_GCC_LIKE
 
 #ifdef CMAKE_GCC_LIKE
@@ -17,5 +18,11 @@
 #else
 #define WARN_UNUSED
 #endif
+
+enum {
+    ERR_SUCCESS = 0,
+
+    ERR_USAGE = TATINI_ERR_COUNT,
+};
 
 #endif //DEFINES_IN_H

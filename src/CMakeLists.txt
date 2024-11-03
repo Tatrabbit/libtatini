@@ -4,6 +4,7 @@ configure_file(defines.in.h
 
 add_executable(tatini
         main.c
+        cli_args.c
 )
 
 target_include_directories(tatini

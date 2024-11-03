@@ -11,11 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {
-    ERR_SUCCESS = 0,
-
-    ERR_USAGE = TATINI_ERR_COUNT,
-};
+#include "cli_args.h"
 
 typedef struct {
     const char *program_name;
@@ -90,74 +86,22 @@ static const char *platform_basename(const char *path) {
     return ((base = strrchr(path, '/'))) ? (base + 1) : path;
 }
 
-typedef int (*filename_func_t_)(const char *filename, void *data);
-
 #define filename_func_t WARN_UNUSED filename_func_t_
 
-///@brief Call @ref func for all arguments.
-///@param argc
-///@param argv
-///@param func Function to call. It should return 0 on success, or non-zero to abort.
-///@param data Arbitrary data to be passed to @ref func
-///@param argi The first argument to process. It's typically 0 or 1
-WARN_UNUSED
-static int iterate_argv_files_disambiguated(const unsigned int argc, const char *const *argv,
-                                            const filename_func_t func, void *data,
-                                            const unsigned int argi) {
-    assert(argi < argc);
+static int arg_count_file(size_t *optc, const char *optv[], void *data) {
+    assert(*optc == 1); // == n_options
+    size_t *p_count = data;
 
-    for (size_t i = argi; i < argc; ++i) {
-        int err;
-        if ((err = func(argv[i], data)) != 0)
-            return err;
-    }
-    return 0;
+    *p_count += 1; // Blindly count it, check later.
+    return ERR_SUCCESS;
 }
 
-///@brief Call @ref func for all input filename arguments.
-/// This function does not ensure the file exists.
-///@param argc
-///@param argv
-///@param func Function to call. It should return 0 on success, or non-zero to abort.
-///@param data Arbitrary data to be passed to @ref func
-///@param argi The first argument to process. It's typically 0 or 1
-WARN_UNUSED
-static int iterate_argv_files(const unsigned int argc, const char *const *argv,
-                              const filename_func_t func,
-                              void *data, unsigned int argi) {
-    assert(argi < argc);
+static int cli_count_input_files(const unsigned int argc, const char **argv, arg_handler_t *handler_data, size_t *count) {
+    handler_data->func = arg_count_file;
+    handler_data->data = count;
 
-    for (int i = argi; i < argc; ++i) {
-        const char *arg = argv[i];
-
-        // Skip all -o --options
-        if (arg[0] == '-') {
-            // Unless the option is -- in which case we will treat all as filenames.
-            if (arg[1] == '-' && arg[2] == '\0')
-                return iterate_argv_files_disambiguated(argc, &arg, func, data, i);
-            continue;
-        }
-
-        int err;
-        if ((err = func(arg, data)) != 0)
-            return err;
-    }
-
-    return 0;
-}
-
-static int count_file_arg(const char *filename, void *data) {
-    (void) filename;
-    *(int *) data += 1;
-    return 0;
-}
-
-static int count_input_files(const unsigned int argc, const char *const *argv) {
-    int err, count = 0;
-    if ((err = iterate_argv_files(argc, argv, count_file_arg, &count, 1)))
-        return -err;
-
-    return count;
+    *count = 0;
+    return parse_cli_arguments(argc, argv, handler_data, 1);
 }
 
 struct file_arg_data_s {
@@ -165,67 +109,73 @@ struct file_arg_data_s {
     size_t loaded_count;
 };
 
-static int open_file_arg(const char *filename, void *data) {
+
+static int arg_open_file(size_t *optc, const char *optv[], void *data) {
     struct file_arg_data_s *arg_data = (struct file_arg_data_s *) data;
 
+    assert(*optc == 1); // == n_options
+    const char *filename = optv[0];
 
-    const int err = tatini_infos_open_one_t(arg_data->infos, arg_data->loaded_count, filename);
-    if (err)
+    int err;
+    if ((err = tatini_infos_open_one_t(arg_data->infos, arg_data->loaded_count, filename)))
         return err; // TODO Use longjmp
 
     arg_data->loaded_count++;
-    return 0;
+    return ERR_SUCCESS;
 }
 
-static int open_input_files(const unsigned int argc, const char *const *argv, tatini_infos_t *infos) {
+static int cli_open_input_files(const unsigned int argc, const char **argv, arg_handler_t *handler_data, tatini_infos_t *infos) {
     struct file_arg_data_s arg_data = {
         .infos = infos,
         .loaded_count = 0,
     };
 
+    handler_data->func = arg_open_file;
+    handler_data->data = &arg_data;
+
+    return parse_cli_arguments(argc, argv, handler_data, 1);
+}
+
+static int open_input_files(const unsigned int argc, const char **argv, tatini_infos_t **allocated_infos) {
     int err;
-    if ((err = iterate_argv_files(argc, argv, open_file_arg, &arg_data, 1)))
+
+    arg_handler_t handler_data = (arg_handler_t){
+        .n_names = 2,
+        .names = (const char *[2]){"-i", "--input"},
+
+        .n_options = 1,
+
+        // .func = ??
+        // .data = ??
+    };
+
+    size_t input_count;
+    if ((err = cli_count_input_files(argc, argv, &handler_data, &input_count)))
         return err;
 
-    return 0;
-}
+    print_verbose("Reading info from %d files...\n", input_count);
 
-static int parse_options(const int argc, const char *const *argv) {
-    options.program_name = platform_basename(argv[0]);
-    if (argc < 2)
-        return show_usage(1);
-    return 0;
-}
+    *allocated_infos = tatini_infos_allocate(input_count, NULL);
+    if (!*allocated_infos)
+        return TATINI_ERR_MEMORY;
 
-// static int cleanup(const int err) {
-//     // cleanup_file_infos();
-//     return err;
-// }
+    return cli_open_input_files(argc, argv, &handler_data, *allocated_infos);
+}
 
 int main(const int argc, char **argv) {
-    int err = TATINI_ERR_SUCCESS;
+    int err = ERR_SUCCESS;
     tatini_mempool_t *mempool = NULL;
     tatini_infos_t *infos = NULL;
     tatini_op_t *ops = NULL;
 
     memset(&options, 0, sizeof(options));
-    options.verbose = 1; // TODO
 
-    if ((err = parse_options(argc, (const char **) argv)))
-        goto cleanup;
+    options.program_name = platform_basename(argv[0]);
+    options.verbose = 1; // TODO
 
     show_version();
 
-    size_t input_count = count_input_files(argc, (const char **) argv);
-
-    print_verbose("Reading info from %d files...\n", input_count);
-    infos = tatini_infos_allocate(input_count, NULL);
-    if (!infos) {
-        err = TATINI_ERR_MEMORY;
-        goto cleanup;
-    }
-
-    if ((err = open_input_files(argc, (const char **) argv, infos)))
+    if ((err = open_input_files(argc, (const char **)argv, &infos)))
         goto cleanup;
 
     tatini_files_t files;
