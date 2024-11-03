@@ -42,29 +42,25 @@ tatini_mempool_t *tatini_mempool_new(const size_t chunk_size) {
     tat_memchunk_t *const chunk = (tat_memchunk_t *) (mempool + 1);
 
     *mempool = (tatini_mempool_t){
-        .
-        chunk_size = chunk_size,
-        .
-        first = chunk,
-        .
-        last = chunk
+        .chunk_size = chunk_size,
+        .first = chunk,
+        .last = chunk
     };
 
     return mempool;
 }
 
-void tatini_mempool_free(const tatini_mempool_t *mempool) {
+void tatini_mempool_free(tatini_mempool_t *mempool) {
     tat_memchunk_t *first = mempool->first;
+    assert(first != NULL); // chunk->first and chunk are from the same malloc() call.
 
-    if (!first)
-        return;
-
-    // TODO fix this
-
-    for (tat_memchunk_t *next, *chunk = first; chunk; chunk = next) {
+    // So free all of them from the 2nd onward.
+    for (tat_memchunk_t *next, *chunk = first->next; chunk; chunk = next) {
         next = chunk->next;
         free(chunk);
     }
+
+    free(mempool);
 }
 
 void *tatini_mempool_getmem(tatini_mempool_t *mempool, const size_t size) {

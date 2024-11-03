@@ -51,7 +51,7 @@ typedef struct tatini_mempool_s {
  */
 tatini_mempool_t *tatini_mempool_new(size_t chunk_size);
 
-void tatini_mempool_free(const tatini_mempool_t *mempool);
+void tatini_mempool_free(tatini_mempool_t *mempool);
 
 void *tatini_mempool_getmem(tatini_mempool_t *mempool, size_t size);
 
