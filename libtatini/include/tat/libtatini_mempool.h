@@ -3,18 +3,6 @@
 
 #include <stddef.h>
 
-
-// TODO remove, use TATINI instead
-enum {
-    TAT_ERR_SUCCESS = 0,
-
-    TAT_ERR_MEMORY,
-    TAT_ERR_FILE,
-    TAT_ERR_STATE,
-    TAT_ERR_COUNT,
-};
-
-
 typedef struct tatini_memchunk_s {
     struct tatini_memchunk_s *next;
     size_t size;
