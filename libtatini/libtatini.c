@@ -210,7 +210,7 @@ tatini_op_t *tatini_parse_multi(tatini_mempool_t *mempool, const tatini_files_t 
     if (buf == NULL)
         return NULL;
 
-    if (setjmp(bini_jump_buf)) {
+    if (setjmp(tatini_jump_buf)) {
         free(buf);
         return NULL;
     }
