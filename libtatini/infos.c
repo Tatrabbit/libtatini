@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./include/tat/libtatini.h"
 #include "./include/tat/libtatini_infos.h"
-
-#include "./libtatini_types.h"
 
 static size_t get_fsize(FILE *f) {
     fseek(f, 0, SEEK_END);
@@ -15,7 +12,7 @@ static size_t get_fsize(FILE *f) {
 }
 
 tatini_infos_t *tatini_infos_allocate(size_t count, tatini_infos_t *infos) {
-    const size_t size_each = sizeof(union tatini_files_u);
+    const size_t size_each = sizeof(tatini_file_t);
     const size_t total_size = sizeof(tatini_infos_t) + size_each * count;
     size_t clear_start = 0;
 
@@ -36,10 +33,10 @@ tatini_infos_t *tatini_infos_allocate(size_t count, tatini_infos_t *infos) {
     return infos;
 }
 
-static void close_info(struct bini_file_info_base_s *info) {
-    if (info->handle) {
-        fclose(info->handle);
-        info->handle = NULL;
+static void close_file(tatini_file_t *file) {
+    if (file->handle) {
+        fclose(file->handle);
+        file->handle = NULL;
     }
 }
 
@@ -47,7 +44,7 @@ void tatini_infos_free(tatini_infos_t *infos) {
     assert(infos != NULL);
 
     for (size_t i = 0; i < infos->count; i++) {
-        const struct bini_file_info_base_s *info = &infos->files[i].base;
+        const tatini_file_t *info = &infos->files[i];
 
         if (info->handle)
             fclose(info->handle);
@@ -67,41 +64,37 @@ int tatini_infos_open_one_t(tatini_infos_t *infos, const size_t index, const cha
     if (!handle)
         return 1; // TODO error handling
 
-    bini_textfile_info_t *info = &infos->files[index].text;
-    close_info((struct bini_file_info_base_s *) info);
+    tatini_file_t *info = &infos->files[index];
+    close_file(info);
     memset(info, 0, sizeof(*info));
 
-    info->type = TATINI_TEXTFILE;
+    info->name = filename;
     info->handle = handle;
-    info->filename = filename;
 
-    info->file_size = get_fsize(handle);
-    infos->initial_buffer_size += info->file_size;
+    info->size = get_fsize(handle);
+    infos->initial_buffer_size += info->size;
 
     return 0;
 }
 
-static int bini_read_textfile_info(bini_textfile_info_t *info, char **shared_buffer) {
+static int bini_read_textfile_info(tatini_file_t *info, char **shared_buffer) {
     if (!info->handle)
         return TATINI_ERR_STATE;
 
     char *buffer = *shared_buffer;
 
     fseek(info->handle, 0, SEEK_SET);
-    const size_t read_count = fread(buffer, info->file_size - 1, 1, info->handle);
+    const size_t read_count = fread(buffer, info->size - 1, 1, info->handle);
     if (read_count != 1)
         return TATINI_ERR_FILE;
 
     info->contents = buffer;
-    *shared_buffer += info->file_size;
+    *shared_buffer += info->size;
 
     return 0;
 }
 
-#define GET_BASE_INFO(x, i)((struct bini_file_info_base_s *) (x->files + i))
-#define GET_TEXT_INFO(x, i)((bini_textfile_info_t *) (x->files + i))
-
-int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files) {
+int tatini_infos_read_all(tatini_infos_t *infos) {
     assert(infos != NULL);
     assert(infos->buffer == NULL);
 
@@ -120,7 +113,7 @@ int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files) {
     // Read & assign buffers
     char *shared_buffer = infos->buffer;
     for (size_t i = 0; i < infos->count; ++i) {
-        const int err = bini_read_textfile_info(GET_TEXT_INFO(infos, i), &shared_buffer);
+        const int err = bini_read_textfile_info(&infos->files[i], &shared_buffer);
         if (err) {
             free(infos->buffer);
             infos->buffer = NULL;
@@ -129,9 +122,41 @@ int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files) {
     }
 
     for (size_t i = 0; i < infos->count; ++i)
-        close_info(GET_BASE_INFO(infos, i));
+        close_file(&infos->files[i]);
 
-    files->count = infos->count;
-    files->files = infos->files;
     return 0;
+}
+
+tatini_state_t *tatini_infos_parse(tatini_mempool_t *mempool, tatini_infos_t *infos) {
+    const size_t files_count = infos->count;
+
+    if (files_count == 0)
+        return NULL;
+
+    const size_t owned_chunks_size = sizeof(tatini_chunk_t) * files_count;
+    const size_t pointer_array_size = sizeof(tatini_chunk_t *) * files_count;
+    const size_t buffer_size = sizeof(tatini_state_t) + owned_chunks_size + pointer_array_size;
+
+    char *buf = malloc(buffer_size);
+    if (buf == NULL)
+        return NULL;
+
+    // if (setjmp(tatini_jump_buf)) {
+    //     free(buf);
+    //     return NULL;
+    // }
+
+    tatini_state_t *state = (tatini_state_t *) buf;
+
+    state->n_chunks = 0;
+    state->chunks = (tatini_chunk_t **)(buf + sizeof(*state));
+
+    for (size_t i = 0, j = 0; i < files_count; i++) {
+        tatini_file_t *file = &infos->files[i];
+
+        tatini_parse_inplace(mempool, file); // TODO error handling
+        state->chunks[state->n_chunks++] = (tatini_chunk_t *)file; // upcast
+    }
+
+    return state;
 }

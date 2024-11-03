@@ -1,7 +1,7 @@
 #ifndef TAT_LIBTATINI_H
 #define TAT_LIBTATINI_H
 
-#include <stddef.h>
+#include <stdio.h>
 
 enum {
     TATINI_ERR_SUCCESS = 0,
@@ -13,49 +13,50 @@ enum {
 };
 
 typedef struct tatini_mempool_s tatini_mempool_t;
+typedef struct tatini_infos_s tatini_infos_t;
 
-typedef struct tatini_kv_s {
+// TODO hide this one in an opaque, inner struct
+typedef struct tatini_kv_ref_s {
     const char *key;
     const char *value;
-    struct tatini_kv_s *next; // TODO hide this one in an opaque, inner struct
-} tatini_kv_t;
+    struct tatini_kv_s *next;
+} tatini_kv_ref_t;
 
-typedef struct {
+typedef struct tatini_section_ref_s {
     const char *name;
 
     size_t key_count;
-    tatini_kv_t *keys;
-    tatini_kv_t *last_key;
-} tatini_section_t;
+    tatini_kv_ref_t *keys;
+    tatini_kv_ref_t *last_key;
+} tatini_section_ref_t;
 
-struct tatini_chunk_datafile_s {
-    int type;
-    void *memory_pool;
+typedef struct tatini_chunk_s {
+    const char *name;
 
-    unsigned int section_count;
-    tatini_section_t **sections;
-};
-
-// TODO remove
-typedef union {
-    int type;
-    struct tatini_chunk_datafile_s datafile;
+    size_t n_sections;
+    tatini_section_ref_t *sections;
 } tatini_chunk_t;
 
+typedef struct tatini_file_s {
+    const char *name;
+
+    size_t n_sections;
+    tatini_section_ref_t *sections;
+
+    /// \brief The size of the buffer
+    size_t size;
+
+    /// \brief Existing buffer containing file contents.
+    /// \note This will be modified during parsing
+    char *contents;
+
+    FILE *handle;
+} tatini_file_t;
+
 typedef struct {
-    int type;
-    tatini_mempool_t *mempool;
-
-    size_t chunk_count;
+    size_t n_chunks;
     tatini_chunk_t **chunks;
-    tatini_chunk_t owned_chunks[];
-} tatini_op_t;
-
-// TODO opaque pointer
-typedef struct tatini_files_s {
-    size_t count;
-    union tatini_files_u *files;
-} tatini_files_t;
+} tatini_state_t;
 
 // typedef int (*bini_error_handler_t)(int err, const char *fmt, ...);
 //
@@ -63,20 +64,10 @@ typedef struct tatini_files_s {
 // extern tatini_error_handler_t bini_error_handler;
 // #endif
 
-//     * Each state holds allocated strings for when key/value pairs are added or modified.
-// * Depending on your use case, you may choose to create one state for all files, or associate
-// * a state with a specific file or set of files. Use one global state if your use case is "one and done"
-// * AKA you need to parse a file or a set of them, and then no more usage is needed.
+void tatini_state_free(tatini_state_t *state);
 
+void tatini_parse_inplace(tatini_mempool_t *mempool, tatini_file_t *file);
 
-// * \note Added parameters, created strings, etc. are only valid while this object exists.
-// *       To prevent memory leaks, \ref bini_free() must be called.
-tatini_op_t *tatini_parse_multi(tatini_mempool_t *mempool, const tatini_files_t *files);
+tatini_section_ref_t *tatini_section_find_first(const tatini_state_t *state, const char *name);
 
-void tatini_free_ops(tatini_op_t *ops);
-
-tatini_section_t *tatini_find_section(const tatini_chunk_t *chunk, const char *name);
-
-tatini_section_t *tatini_find_section_all(const tatini_op_t *ops, const char *name, tatini_chunk_t **containing_chunk);
-
-#endif //TAT_BINI_H
+#endif

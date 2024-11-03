@@ -5,20 +5,15 @@
 #ifndef TAT_LIBTATINI_INFOS_H
 #define TAT_LIBTATINI_INFOS_H
 
-// TODO This must not be included!
-#include "../../libtatini_types.h"
+#include "./libtatini.h"
 
-#include <stddef.h>
-
-// TODO opaque pointers
-
-typedef struct {
+typedef struct tatini_infos_s {
     size_t count;
     size_t initial_buffer_size;
 
     char *buffer;
 
-    union tatini_files_u files[];
+    tatini_file_t files[];
 } tatini_infos_t;
 
 ///@brief Allocate an Infos batch
@@ -40,6 +35,17 @@ void tatini_infos_free(tatini_infos_t *infos);
 ///@return On success, 0 is returned. Otherwise, the error code.
 int tatini_infos_open_one_t(tatini_infos_t *infos, size_t index, const char *filename);
 
-int tatini_infos_readall(tatini_infos_t *infos, tatini_files_t *files);
+
+// TODO combine with parse
+int tatini_infos_read_all(tatini_infos_t *infos);
+
+// * Each state holds allocated strings for when key/value pairs are added or modified.
+// * Depending on your use case, you may choose to create one state for all files, or associate
+// * a state with a specific file or set of files. Use one global state if your use case is "one and done"
+// * AKA you need to parse a file or a set of them, and then no more usage is needed.
+
+// * \note Added parameters, created strings, etc. are only valid while this object exists.
+// *       To prevent memory leaks, \ref bini_free() must be called.
+tatini_state_t *tatini_infos_parse(tatini_mempool_t *mempool, tatini_infos_t *infos);
 
 #endif

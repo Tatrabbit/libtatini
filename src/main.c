@@ -166,7 +166,7 @@ int main(const int argc, char **argv) {
     int err = ERR_SUCCESS;
     tatini_mempool_t *mempool = NULL;
     tatini_infos_t *infos = NULL;
-    tatini_op_t *ops = NULL;
+    tatini_state_t *state = NULL;
 
     memset(&options, 0, sizeof(options));
 
@@ -178,8 +178,7 @@ int main(const int argc, char **argv) {
     if ((err = open_input_files(argc, (const char **)argv, &infos)))
         goto cleanup;
 
-    tatini_files_t files;
-    if ((err = tatini_infos_readall(infos, &files)))
+    if ((err = tatini_infos_read_all(infos)))
         goto cleanup;
 
     mempool = tatini_mempool_new(4096);
@@ -188,11 +187,11 @@ int main(const int argc, char **argv) {
         goto cleanup;
     }
 
-    ops = tatini_parse_multi(mempool, &files);
+    state = tatini_infos_parse(mempool, infos);
 
 cleanup:
-    if (ops != NULL)
-        tatini_free_ops(ops);
+    if (state != NULL)
+        tatini_state_free(state);
 
     if (mempool != NULL)
         tatini_mempool_free(mempool);
